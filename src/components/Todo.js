@@ -1,6 +1,8 @@
 import React from 'react';
 
 const Todo = (prop) => {
+    debugger
+    console.log('aaaaaa');
     const isArchived = prop.isArchived === true ? 'checked' : 'not checked'
     return (
         <div key={prop} className='todo'>

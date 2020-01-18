@@ -13,8 +13,22 @@ import Home from './components/Home';
 const Book = (props) => {
   console.log('props : ', props);
   return (
+    <div className="book">
+      <Link to={`/books/${props.id}`}>{props.name}</Link>
+    </div>
+  );
+}
+
+const TodoForm = ({ onSubmit, value, handleChange }) => {
+  return (
     <div>
-      <Link to={`/book/${props.id}`}>{props.name}</Link>
+      <form onSubmit={onSubmit}>
+        <input
+          value={value}
+          onChange={handleChange}
+        />
+        <button type="submit"> + </button>
+      </form>
     </div>
   );
 }
@@ -23,10 +37,9 @@ const App = () => {
   const [todos, setTodos] = useState([]);
   const [books, setBooks] = useState([]);
   const [bookId, setBookId] = useState('');
+  const [newTodoContent, setNewTodoContent] = useState('');
 
   useEffect(() => {
-    // setTodos(initialTodos);
-    console.log('hook!!!!');
     bookService
       .getAll()
       .then(initialBooks => {
@@ -35,29 +48,47 @@ const App = () => {
   }, []);
 
   useEffect(() => {
-    if(bookId.length > 0) {
+    if (bookId.length > 0) {
       todoService
         .getByBookId(bookId)
         .then(todos => {
           setTodos(todos);
         });
+    } else {
+      setTodos([]);
     }
-  },[bookId])
+  }, [bookId]);
+
+  const addTodo = (event) => {
+    event.preventDefault();
+    debugger
+
+    const newTodo = {
+      content: newTodoContent,
+      bookId: bookId
+    }
+
+    todoService
+      .create(newTodo)
+      .then(returnedTodo => {
+        setTodos(todos.concat(returnedTodo))
+        setNewTodoContent('');
+      });
+  }
+
+  const handleTodoChange = (event) => {
+    setNewTodoContent(event.target.value);
+  }
 
 
-  const toggleArchive = (todoId, bookId) => {
-    // const book = books.find(book => book.bookId === bookId);
-    // const todos = book.todo;
-    // const todo = todos.find(todo => todo.todoId === todoId);
-    // const changedTodo = { ...todo, isArchived: !todo.isArchived };
-    // const filteredTodo = todos.filter(todo => todo.todoId !== todoId);
-    // const newTodos = filteredTodo.concat(changedTodo);
-    // const changedBook = { ...book, todo: newTodos };
-    // const filterdBooks = books.filter(book => book.bookId !== bookId);
-    // const newBooks = filterdBooks.concat(changedBook);
-
-    // setBooks(newBooks);
-    // setTodos(newTodos);
+  const toggleArchive = (todoId, isArchived) => {
+    console.log('isArchived : ', isArchived);
+    todoService
+      .updateIsArchived(todoId, isArchived)
+      .then(updatedTodo => {
+        debugger
+        setTodos(todos.map(todo => todo.id !== updatedTodo.id ? todo : updatedTodo))
+      }, []);
   }
 
   const todoList = () =>
@@ -66,12 +97,12 @@ const App = () => {
         content={todo.content}
         isArchived={todo.isArchived}
         key={todo.todoId}
-        toggleArchive={() => toggleArchive(todo.todoId, todo.bookId)}
+        toggleArchive={() => toggleArchive(todo.id, todo.isArchived)}
       />
     ));
 
   const bookList = () => {
-    console.log('books : ', books);
+    setBookId('');
     return (
       books.map(book => (
         <Book
@@ -85,27 +116,34 @@ const App = () => {
 
 
   const todoById = (id) => {
-    // const todo = books.find(book => book.bookId === id);
-    // if (todo) {
-    //   setTodos(todo);
-    // }
     setBookId(id);
-    return todoList();
+    return (
+      <div>
+        <TodoForm
+          onSubmit={addTodo}
+          newTodoContent={newTodoContent}
+          handleChange={handleTodoChange}
+        />
+        { todoList() }
+      </div>
+      
+    );
+    
   }
 
-  return (
-    <div>
-      <Router>
-        <div>
-          <Link to='/'>home</Link>
-          <Link to='/books'>books</Link>
-        </div>
-        <Route exact path='/books' render={bookList} />
-        <Route exact path='/' render={() => <Home />} />
-        <Route exact path='/book/:id' render={({ match }) => todoById(match.params.id)} />
-      </Router>
-    </div>
-  );
+return (
+  <div>
+    <Router>
+      <div>
+        <Link to='/'>home</Link>
+        <Link to='/books'>books</Link>
+      </div>
+      <Route exact path='/books' render={bookList} />
+      <Route exact path='/' render={() => <Home />} />
+      <Route exact path='/books/:id' render={({ match }) => todoById(match.params.id)} />
+    </Router>
+  </div>
+);
 }
 
 export default App;
